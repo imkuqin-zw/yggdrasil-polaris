@@ -1,0 +1,31 @@
+yggdrasil:
+  application:
+    namespace: "default"
+  client:
+    github.com.imkuqin_zw.yggdrasil_polaris.example.server:
+      resolver: "polaris"
+      balancer: "polaris"
+  interceptor:
+    unaryClient: "logger"
+    streamClient: "logger"
+    config:
+      logger:
+        printReqAndRes: true
+
+  registry: "polaris"
+
+polaris:
+  client:
+    global:
+      serverConnector:
+        addresses:
+          - 127.0.0.1:8091
+      statReporter:
+        enable: true
+        chain:
+          - prometheus
+    consumer:
+      circuitBreaker:
+        enable: true
+        chain:
+          - errorRate
