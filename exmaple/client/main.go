@@ -44,7 +44,7 @@ func main() {
 	if err := config.LoadSource(file.NewSource("./config.yaml", false)); err != nil {
 		logger.Fatal(err)
 	}
-
+	yggdrasil.Init("github.com.imkuqin_zw.yggdrasil_polaris.example.client")
 	echoClient := helloword.NewGreeterClient(yggdrasil.NewClient("github.com.imkuqin_zw.yggdrasil_polaris.example.server"))
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -60,16 +60,10 @@ func main() {
 		echoClient: echoClient,
 		ctx:        ctx,
 	}
-	go func() {
-		if err := http.Serve(listen, echoHandler); nil != err {
-			log.Fatal(err)
-		}
-	}()
 
-	if err := yggdrasil.Run("github.com.imkuqin_zw.yggdrasil_polaris.example.client"); err != nil {
-		logger.ErrorFiled("server stopped", logger.Err(err))
+	if err := http.Serve(listen, echoHandler); nil != err {
+		log.Fatal(err)
 	}
-
 }
 
 // EchoHandler is a http.Handler that implements the echo service.
