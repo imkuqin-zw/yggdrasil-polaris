@@ -15,7 +15,6 @@
 package polaris
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"sync"
@@ -59,12 +58,6 @@ func (pr *resolver) AddWatch(serviceName string) (err error) {
 	watcher := &watcherInstance{
 		pr: pr,
 	}
-	watcher.ctx, watcher.cancel = context.WithCancel(context.Background())
-	defer func() {
-		if err != nil {
-			watcher.cancel()
-		}
-	}()
 	watcher.info = getDstServiceInfo(serviceName)
 	sdkCtx, err := Context()
 	if nil != err {
@@ -111,28 +104,47 @@ func (pr *resolver) Name() string {
 }
 
 type watcherInstance struct {
-	info     *DstServiceInfo
-	pr       *resolver
-	consumer api.ConsumerAPI
-	ctx      context.Context
-	cancel   context.CancelFunc
+	info        *DstServiceInfo
+	pr          *resolver
+	consumer    api.ConsumerAPI
+	watchCancel func()
 }
 
-func (w *watcherInstance) lookup() {
-	info := w.info
-	instancesRequest := &api.GetInstancesRequest{}
-	instancesRequest.Namespace = info.Namespace
-	instancesRequest.Service = info.ServiceName
-	instancesRequest.SourceService = w.pr.sourceInfo
-	instancesRequest.SkipRouteFilter = true
-	if len(info.DstMetadata) > 0 {
-		instancesRequest.Metadata = info.DstMetadata
+func (w *watcherInstance) doWatch() error {
+	watchRequest := &api.WatchServiceRequest{}
+	watchRequest.Key = model.ServiceKey{
+		Namespace: w.info.Namespace,
+		Service:   w.info.ServiceName,
 	}
-	resp, err := w.consumer.GetInstances(instancesRequest)
+	res, err := w.consumer.GetAllInstances(&api.GetAllInstancesRequest{
+		GetAllInstancesRequest: model.GetAllInstancesRequest{
+			Service:   w.info.ServiceName,
+			Namespace: w.info.Namespace,
+		},
+	})
+	if err != nil {
+		return err
+	}
+	w.OnInstancesUpdate(res)
+	resp, err := w.consumer.WatchAllInstances(&api.WatchAllInstancesRequest{
+		WatchAllInstancesRequest: model.WatchAllInstancesRequest{
+			ServiceKey: model.ServiceKey{
+				Namespace: w.info.Namespace,
+				Service:   w.info.ServiceName,
+			},
+			WatchMode:         api.WatchModeNotify,
+			InstancesListener: w,
+		},
+	})
 	if nil != err {
-		logger.ErrorFiled("fault to get instances", logger.String("serviceName", w.info.ServiceName), logger.Err(err))
-		return
+		logger.ErrorFiled("fail to do watch", logger.String("serviceName", w.info.ServiceName), logger.Err(err))
+		return err
 	}
+	w.watchCancel = resp.CancelWatch
+	return nil
+}
+
+func (w *watcherInstance) OnInstancesUpdate(resp *model.InstancesResponse) {
 	var endpoints = make([]interface{}, 0, len(resp.Instances))
 	for _, instance := range resp.Instances {
 		endpoint := map[string]interface{}{
@@ -142,43 +154,19 @@ func (w *watcherInstance) lookup() {
 		}
 		endpoints = append(endpoints, endpoint)
 	}
-	_ = config2.SetMulti([]string{fmt.Sprintf(config2.KeyClientEndpoints, info.ServiceName)}, []interface{}{endpoints})
-	return
-}
-
-func (w *watcherInstance) doWatch() <-chan model.SubScribeEvent {
-	watchRequest := &api.WatchServiceRequest{}
-	watchRequest.Key = model.ServiceKey{
-		Namespace: w.info.Namespace,
-		Service:   w.info.ServiceName,
-	}
-	resp, err := w.consumer.WatchService(watchRequest)
-	if nil != err {
-		logger.ErrorFiled("fail to do watch", logger.String("serviceName", w.info.ServiceName), logger.Err(err))
-		return nil
-	}
-	return resp.EventChannel
+	_ = config2.SetMulti([]string{fmt.Sprintf(config2.KeyClientEndpoints, w.info.ServiceName)}, []interface{}{endpoints})
 }
 
 func (w *watcherInstance) watch() {
-	eventChan := w.doWatch()
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
-	w.pr.wg.Add(1)
-	defer w.pr.wg.Done()
 	for {
-		select {
-		case <-w.ctx.Done():
+		if err := w.doWatch(); err == nil {
 			return
-		case <-eventChan:
-		case <-ticker.C:
 		}
-		w.lookup()
-		eventChan = w.doWatch()
+		time.Sleep(time.Second * 5)
 	}
 }
 
 func (w *watcherInstance) stop() {
-	w.cancel()
+	w.watchCancel()
 	w.consumer.Destroy()
 }

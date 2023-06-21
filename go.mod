@@ -3,8 +3,9 @@ module github.com/imkuqin-zw/yggdrasil-polaris
 go 1.19
 
 require (
-	github.com/imkuqin-zw/yggdrasil v1.1.2
-	github.com/polarismesh/polaris-go v1.3.0
+	github.com/imkuqin-zw/yggdrasil v1.1.9
+	github.com/polarismesh/polaris-go v1.4.3
+	github.com/polarismesh/specification v1.2.1
 	go.uber.org/multierr v1.9.0
 	google.golang.org/genproto v0.0.0-20230216225411-c8e22ba71e44
 	google.golang.org/protobuf v1.28.1

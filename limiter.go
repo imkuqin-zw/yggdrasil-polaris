@@ -28,7 +28,7 @@ import (
 	"github.com/polarismesh/polaris-go/api"
 	"github.com/polarismesh/polaris-go/pkg/flow/data"
 	"github.com/polarismesh/polaris-go/pkg/model"
-	v1 "github.com/polarismesh/polaris-go/pkg/model/pb/v1"
+	v1 "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"google.golang.org/genproto/googleapis/rpc/code"
 )
 
@@ -139,7 +139,7 @@ func (p *rateLimitInterceptor) fetchArguments(req *model.QuotaRequestImpl) ([]*v
 	}
 
 	if err := engine.SyncGetResources(getRuleReq); err != nil {
-		logger.Errorf("polaris rateLimit ns:%s svc:%s get RateLimit Rule fail : %+v",
+		logger.Errorf("polaris rateLimit ns:%s svc:%s get RateLimit Rule fail: %+v",
 			req.GetNamespace(), req.GetService(), err)
 		return nil, false
 	}

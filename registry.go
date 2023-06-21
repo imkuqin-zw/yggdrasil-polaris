@@ -40,7 +40,7 @@ type RegistryConfig struct {
 	Protocol         *string
 	Weight           *int
 	Priority         *int
-	TTL              int `default:"20"`
+	TTL              int `default:"5"`
 	Isolate          *bool
 	Healthy          *bool
 	Timeout          *time.Duration
