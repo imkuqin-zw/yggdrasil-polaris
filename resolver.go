@@ -147,6 +147,9 @@ func (w *watcherInstance) doWatch() error {
 func (w *watcherInstance) OnInstancesUpdate(resp *model.InstancesResponse) {
 	var endpoints = make([]interface{}, 0, len(resp.Instances))
 	for _, instance := range resp.Instances {
+		if !instance.IsHealthy() || instance.IsIsolated() {
+			continue
+		}
 		endpoint := map[string]interface{}{
 			config2.KeySingleAddress:  fmt.Sprintf("%s:%d", instance.GetHost(), instance.GetPort()),
 			config2.KeySingleProtocol: instance.GetProtocol(),
