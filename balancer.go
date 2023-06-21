@@ -15,12 +15,14 @@
 package polaris
 
 import (
+	"strings"
 	"sync"
 	"time"
 
 	balancer2 "github.com/imkuqin-zw/yggdrasil/pkg/balancer"
 	config2 "github.com/imkuqin-zw/yggdrasil/pkg/config"
 	"github.com/imkuqin-zw/yggdrasil/pkg/logger"
+	"github.com/imkuqin-zw/yggdrasil/pkg/metadata"
 	resolver2 "github.com/imkuqin-zw/yggdrasil/pkg/resolver"
 	"github.com/imkuqin-zw/yggdrasil/pkg/status"
 	polarisgo "github.com/polarismesh/polaris-go"
@@ -73,6 +75,17 @@ func (b *balancer) getInstances() (*model.InstancesResponse, error) {
 	if nil != err {
 		return nil, err
 	}
+	var instances = make([]model.Instance, 0, len(resp.Instances))
+	totalWeight := 0
+	for _, instance := range resp.Instances {
+		if !instance.IsHealthy() || instance.IsIsolated() {
+			continue
+		}
+		totalWeight += instance.GetWeight()
+		instances = append(instances, instance)
+	}
+	resp.Instances = instances
+	resp.TotalWeight = totalWeight
 	return resp, nil
 }
 
@@ -145,18 +158,27 @@ func (p *picker) Next(ri balancer2.RpcInfo) (balancer2.PickResult, error) {
 		routerRequest := &polarisgo.ProcessRoutersRequest{}
 		routerRequest.DstInstances = p.instances
 		routerRequest.SourceService = *buildSourceInfo()
+		if md, ok := metadata.FromOutContext(ri.Ctx); ok {
+			for k, v := range md {
+				routerRequest.AddArguments(model.BuildCustomArgument(k, strings.Join(v, ";")))
+				//routerRequest.SourceService.Metadata[k] = strings.Join(v, ";")
+			}
+		}
 		routerRequest.Method = ri.Method
-
 		var routerInstancesResp *model.InstancesResponse
 		var err error
 		routerInstancesResp, err = p.routerAPI.ProcessRouters(routerRequest)
 		if nil != err {
-			return nil, err
-		}
-		if len(routerInstancesResp.GetInstances()) == 0 {
+			if sdkErr, ok := err.(model.SDKError); ok && sdkErr.ErrorCode() == model.ErrCodeRouteRuleNotMatch {
+				routerInstancesResp = p.instances
+			}
+			logger.ErrorFiled("fault to process router", logger.Err(err))
 			return nil, err
 		}
 		p.routerInstancesResp = routerInstancesResp
+	}
+	if p.routerInstancesResp == nil || len(p.routerInstancesResp.GetInstances()) == 0 {
+		return nil, balancer2.ErrNoAvailableInstance
 	}
 	lbReq := &polarisgo.ProcessLoadBalanceRequest{}
 	lbReq.DstInstances = p.routerInstancesResp
@@ -165,14 +187,18 @@ func (p *picker) Next(ri balancer2.RpcInfo) (balancer2.PickResult, error) {
 	if nil != err {
 		return nil, err
 	}
+	instance := oneInsResp.GetInstance()
+	if instance == nil {
+		return nil, balancer2.ErrNoAvailableInstance
+	}
 	rp := &resultReporter{
 		fullMethod:  ri.Method,
-		instance:    oneInsResp.GetInstance(),
+		instance:    instance,
 		consumerAPI: p.br.consumerAPI,
 		startTime:   time.Now(),
 	}
 	result := &pickResult{
-		endpoint: instanceToEndpoint(oneInsResp.GetInstance()),
+		endpoint: instanceToEndpoint(instance),
 		report:   rp.report,
 	}
 	return result, nil

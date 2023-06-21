@@ -32,11 +32,12 @@ import (
 	"github.com/imkuqin-zw/yggdrasil/pkg/config/source/file"
 	_ "github.com/imkuqin-zw/yggdrasil/pkg/interceptor/logger"
 	"github.com/imkuqin-zw/yggdrasil/pkg/logger"
+	"github.com/imkuqin-zw/yggdrasil/pkg/metadata"
 	_ "github.com/imkuqin-zw/yggdrasil/pkg/remote/protocol/grpc"
 )
 
 const (
-	listenPort   = 0
+	listenPort   = 6001
 	defaultCount = 20
 )
 
@@ -46,6 +47,8 @@ func main() {
 	}
 	yggdrasil.Init("github.com.imkuqin_zw.yggdrasil_polaris.example.client")
 	echoClient := helloword.NewGreeterClient(yggdrasil.NewClient("github.com.imkuqin_zw.yggdrasil_polaris.example.server"))
+	go yggdrasil.Serve()
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	address := fmt.Sprintf("0.0.0.0:%d", listenPort)
@@ -74,6 +77,9 @@ type EchoHandler struct {
 }
 
 func (s *EchoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		return
+	}
 	//err := r.ParseForm()
 	//if nil != err {
 	//	log.Printf("fail to parse request form: %v\n", err)
@@ -81,10 +87,18 @@ func (s *EchoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	//	_, _ = w.Write([]byte(err.Error()))
 	//	return
 	//}
+	defer func() {
+		if rec := recover(); rec != nil {
+			fmt.Printf("%+v", rec)
+		}
+	}()
+	fmt.Println(r.URL.RawQuery)
 	params, _ := url.ParseQuery(r.URL.RawQuery)
 
 	value := params.Get("value")
 	log.Printf("receive value is %s\n", value)
+	tagVal := params.Get("tag")
+	log.Printf("receive tag is %s\n", tagVal)
 	//var value string
 	//if len(values) > 0 {
 	//	value = values[0]
@@ -104,8 +118,10 @@ func (s *EchoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	builder := strings.Builder{}
 	for i := 0; i < count; i++ {
-		resp, err := s.echoClient.SayHello(s.ctx, &helloword.HelloRequest{Name: value})
-		log.Printf("%d, send message %s, resp (%v), err(%v)\n", i, value, resp, err)
+		ctx, cancel := context.WithTimeout(s.ctx, 3*time.Second)
+		ctx = metadata.WithOutContext(ctx, metadata.New(map[string]string{"tag": tagVal, "dd": "1"}))
+		resp, err := s.echoClient.SayHello(ctx, &helloword.HelloRequest{Name: value})
+		cancel()
 		if nil != err {
 			builder.Write([]byte(err.Error()))
 			builder.WriteByte('\n')
