@@ -75,8 +75,7 @@ func (c *polaris) Changeable() bool {
 
 func (c *polaris) Watch() (<-chan source.SourceData, error) {
 	csdCh := make(chan source.SourceData, 1)
-	changeEventChan := make(chan model.ConfigFileChangeEvent)
-	c.cfgFile.AddChangeListenerWithChannel(changeEventChan)
+	changeEventChan := c.cfgFile.AddChangeListenerWithChannel()
 	xgo.Go(func() {
 		defer func() {
 			close(csdCh)

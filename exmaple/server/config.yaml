@@ -7,8 +7,8 @@ yggdrasil:
       - "grpc"
 
   remote:
-    protocol:
-      grpc:
+    logger:
+      level: "debug"
 
   registry: "polaris"
 

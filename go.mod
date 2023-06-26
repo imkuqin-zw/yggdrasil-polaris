@@ -4,8 +4,8 @@ go 1.19
 
 require (
 	github.com/imkuqin-zw/yggdrasil v1.1.9
-	github.com/polarismesh/polaris-go v1.4.3
-	github.com/polarismesh/specification v1.2.1
+	github.com/polarismesh/polaris-go v1.5.1
+	github.com/polarismesh/specification v1.3.2-alpha.2
 	go.uber.org/multierr v1.9.0
 	google.golang.org/genproto v0.0.0-20230216225411-c8e22ba71e44
 	google.golang.org/protobuf v1.28.1
@@ -30,7 +30,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/natefinch/lumberjack v2.0.0+incompatible // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/prometheus/client_golang v1.12.1 // indirect
+	github.com/prometheus/client_golang v1.12.2 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.32.1 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
