@@ -178,7 +178,7 @@ func (r *registry) deregisterService(_ context.Context, info registry2.Instance,
 //		case <-ticker.C:
 //			err := r.registerService(ctx, info, endpoint)
 //			if err != nil {
-//				logger.ErrorFiled("fault to register", logger.Err(err))
+//				logger.ErrorField("fault to register", logger.Err(err))
 //			}
 //		case <-ctx.Done():
 //			return
@@ -193,12 +193,12 @@ func (r *registry) Name() string {
 func buildRegistry() registry2.Registry {
 	cfg := RegistryConfig{}
 	if err := config.Scan(configKeyRegistry, &cfg); err != nil {
-		logger.FatalFiled("fault to load config", logger.Err(err))
+		logger.FatalField("fault to load config", logger.Err(err))
 		return nil
 	}
 	ctx, err := Context()
 	if err != nil {
-		logger.FatalFiled("fault to build provider api", logger.Err(err))
+		logger.FatalField("fault to build provider api", logger.Err(err))
 		return nil
 	}
 	return &registry{cfg: cfg, provider: api.NewProviderAPIByContext(ctx)}

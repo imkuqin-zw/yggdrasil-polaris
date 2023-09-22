@@ -3,7 +3,7 @@ module github.com/imkuqin-zw/yggdrasil-polaris
 go 1.19
 
 require (
-	github.com/imkuqin-zw/yggdrasil v1.1.9
+	github.com/imkuqin-zw/yggdrasil v1.2.1
 	github.com/polarismesh/polaris-go v1.5.1
 	github.com/polarismesh/specification v1.3.2-alpha.2
 	go.uber.org/multierr v1.9.0

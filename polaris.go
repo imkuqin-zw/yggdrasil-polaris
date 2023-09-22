@@ -68,7 +68,7 @@ func Configuration() config.Configuration {
 		cfg := &config.ConfigurationImpl{}
 		cfg.Init()
 		if err := config2.Scan(configKeyClient, cfg); err != nil {
-			logger.FatalFiled("fault to load polaris config", logger.Err(err))
+			logger.FatalField("fault to load polaris config", logger.Err(err))
 		}
 		cfg.SetDefault()
 		polarisConfig = cfg

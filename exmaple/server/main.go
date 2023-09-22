@@ -45,16 +45,16 @@ var (
 
 func main() {
 	if err := config.LoadSource(file.NewSource("./config.yaml", false)); err != nil {
-		logger.FatalFiled("fault to load config file", logger.Err(err))
+		logger.FatalField("fault to load config file", logger.Err(err))
 	}
 	if err := config.LoadSource(flag.NewSource()); err != nil {
-		logger.FatalFiled("fault to load config file", logger.Err(err))
+		logger.FatalField("fault to load config file", logger.Err(err))
 	}
 	name := config.Get("server.name").String("0")
 	fmt.Println("server_name:", name)
 	if err := yggdrasil.Run("github.com.imkuqin_zw.yggdrasil_polaris.example.server."+name,
 		yggdrasil.WithServiceDesc(&helloword.GreeterServiceDesc, &GreeterCircuitBreakerService{}),
 	); err != nil {
-		logger.FatalFiled("the application was ended forcefully ", logger.Err(err))
+		logger.FatalField("the application was ended forcefully ", logger.Err(err))
 	}
 }

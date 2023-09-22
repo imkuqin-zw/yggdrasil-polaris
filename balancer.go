@@ -48,7 +48,7 @@ type balancer struct {
 func newBalancer(serviceName string) balancer2.Balancer {
 	sdkCtx, err := Context()
 	if err != nil {
-		logger.ErrorFiled("fault to get polaris context", logger.Err(err))
+		logger.ErrorField("fault to get polaris context", logger.Err(err))
 	}
 
 	br := &balancer{
@@ -103,7 +103,7 @@ func (b *balancer) GetPicker() balancer2.Picker {
 func (b *balancer) Update(_ config2.Values) {
 	resp, err := b.getInstances()
 	if err != nil {
-		logger.ErrorFiled("fault to get instances", logger.Err(err))
+		logger.ErrorField("fault to get instances", logger.Err(err))
 		b.instancesOld = true
 		return
 	}
@@ -172,7 +172,7 @@ func (p *picker) Next(ri balancer2.RpcInfo) (balancer2.PickResult, error) {
 			if sdkErr, ok := err.(model.SDKError); ok && sdkErr.ErrorCode() == model.ErrCodeRouteRuleNotMatch {
 				routerInstancesResp = p.instances
 			}
-			logger.ErrorFiled("fault to process router", logger.Err(err))
+			logger.ErrorField("fault to process router", logger.Err(err))
 			return nil, err
 		}
 		p.routerInstancesResp = routerInstancesResp
@@ -226,6 +226,6 @@ func (r *resultReporter) report(err error) {
 	callResult.SetDelay(time.Since(r.startTime))
 	callResult.SetRetCode(st.Code())
 	if err := r.consumerAPI.UpdateServiceCallResult(callResult); err != nil {
-		logger.ErrorFiled("polaris fault to report call info", logger.Err(err))
+		logger.ErrorField("polaris fault to report call info", logger.Err(err))
 	}
 }
